@@ -6,9 +6,11 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
+import com.jogamp.opengl.glu.GLUquadric;
 import com.jogamp.opengl.util.FPSAnimator;
 import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
 
 import java.awt.Frame;
@@ -18,7 +20,13 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
 
 /**
  * Classe para criar um campo de futebol americano
@@ -65,9 +73,17 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
     /**
      * Variáveis da classe
      */
+    private GL2 gl;
     private GLU glu;// objeto da classe GLU
     private GLUT glut; // objeto da classe GLUT
     private int texture;
+    private int idTextura[];
+    private int largura, altura;
+    private ByteBuffer buffer;
+    private BufferedImage imagem;
+    private TextureData texData;
+    private Texture texturaCampo;
+
     
     
     /**
@@ -85,18 +101,59 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         GL2 gl = drawable.getGL().getGL2();
         glu = new GLU();
         glut = new GLUT();
+        //abilita o uso da textura
         gl.glEnable(GL2.GL_TEXTURE_2D);
-        try {
-            File im = new File("campo.png");
-            Texture t = TextureIO.newTexture(im, true);
-            texture = t.getTextureObject();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        
+        // Comandos de inicialização para textura
+        loadImage("campo.jpg");
+        
+        // Gera identificador de textura
+        idTextura = new int[10];
+        gl.glGenTextures(1, idTextura, 1);
+        
+        // Especifica qual � a textura corrente pelo identificador 
+        gl.glBindTexture(GL.GL_TEXTURE_2D, idTextura[0]);
+        
+        // Envio da textura para OpenGL
+        gl.glTexImage2D(GL.GL_TEXTURE_2D, 0, 3, largura, 
+                        altura, 0, GL.GL_BGR, GL.GL_UNSIGNED_BYTE, buffer);
+        
+        // Define os filtros de magnificação e minificação 
+        gl.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MIN_FILTER,GL.GL_LINEAR);	
+        gl.glTexParameteri(GL.GL_TEXTURE_2D,GL.GL_TEXTURE_MAG_FILTER,GL.GL_LINEAR);
+        
         // Cor do fundo da tela
         gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
+    public void loadImage(String nomeArq)
+	{
+		// Tenta carregar o arquivo		
+		imagem = null;
+		try {
+                    imagem = ImageIO.read(new File("src\\texture\\" + nomeArq));
+                    // Obtém largura e altura
+                    largura  = imagem.getWidth();
+                    altura = imagem.getHeight();
+		}
+		catch (IOException e) {
+                    JOptionPane.showMessageDialog(null,"Erro na leitura do arquivo "+nomeArq);
+                    System.out.println(e.getStackTrace());
+		}
+
+		//Carrega a textura		
+		try {
+                    InputStream stream = getClass().getResourceAsStream(nomeArq);
+                    texData = TextureIO.newTextureData(GLProfile.getDefault(), stream, false, "jpg");
+		}
+		catch (IOException exc) {
+                    exc.printStackTrace();
+                    System.exit(1);
+		}
+		// ...e obtém um ByteBuffer a partir dela
+		buffer = (ByteBuffer) texData.getBuffer();
+	}
+    
     @Override
     public void dispose(GLAutoDrawable drawable) {
     }
@@ -109,24 +166,48 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
      */
     @Override
     public void display(GLAutoDrawable drawable) {
-        GL2 gl = drawable.getGL().getGL2();
         
         // Limpa a janela de visualização com a cor de fundo especificada
-        gl.glClear(GL.GL_COLOR_BUFFER_BIT);
+        gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT );
+        gl.glLoadIdentity();
         
         gl.glColor3f(0.0f, 0.0f, 0.0f);
         
+        renderizaCampo();
+    }
+    
+    private void renderizaCampo (){
+        try {
+            InputStream stream = getClass().getResourceAsStream("campo.jpg");
+            TextureData data = TextureIO.newTextureData(GLProfile.getDefault(), stream, false, "jpg");
+            texturaCampo = TextureIO.newTexture(data);
+        }
+        catch (IOException exc) {
+            exc.printStackTrace();
+            System.exit(1);
+        }
+
+        //Habilita a textura do campo
+        texturaCampo.enable(gl);
+        texturaCampo.bind(gl);
+
         gl.glPushMatrix();
-            gl.glColor3f(1f, 0f, 0f);
-            gl.glBindTexture(GL2.GL_TEXTURE_2D, texture);
+            //Desloca o objeto
+            gl.glTranslatef(0f, 40f, 30f);
+            //Desenha o "retangulo" do campo      
+            GLUquadric campo = glu.gluNewQuadric();
+            glu.gluQuadricTexture(campo, true);
+            glu.gluQuadricDrawStyle(campo, GLU.GLU_FILL);
+            glu.gluQuadricNormals(campo, GLU.GLU_FLAT);
+            glu.gluQuadricOrientation(campo, GLU.GLU_OUTSIDE);
             gl.glScalef(1.0f, 0.5f, 0.0f);
             glut.glutSolidCube(2.0f);
-        
+            glu.gluDeleteQuadric(campo);
         gl.glPopMatrix();
-        
-        // Executa os comandos OpenGL
-        gl.glFlush();
+        texturaCampo.disable(gl);
+        texturaCampo.destroy(gl);
     }
+    
     
     /**
      * Chamado após o redimensionamento do componente ou da janela de
