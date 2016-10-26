@@ -12,6 +12,7 @@ import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
+import java.awt.BorderLayout;
 
 import java.awt.Frame;
 import java.awt.event.KeyEvent;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import javax.imageio.ImageIO;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
@@ -47,29 +49,54 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         GLCanvas canvas = new GLCanvas(caps);
         
         //Cria o frame correspondente à tela da aplicação
-        Frame frame = new Frame("Campo");
-        frame.setSize(1900,1000);
-        frame.add(canvas);
-        frame.setVisible(true);
+        JFrame janela = new JFrame("Campo");
+        janela.setSize(1024,720);
+        janela.add(canvas);
+        janela.setVisible(true);
         
         //Adiciona um listener para o fechamento da janela
-        frame.addWindowListener(new WindowAdapter() {
+        janela.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 System.exit(0);
             }
         });
         
+        // Cria um objeto GLCapabilities para especificar o n�mero de bits 
+        // por pixel para RGBA
+        caps.setRedBits(8);
+        caps.setBlueBits(8);
+        caps.setGreenBits(8);
+        caps.setAlphaBits(8); 
+        
         CG_Campo app = new CG_Campo();
-        //Adiciona um listener de eventos OpenGL à aplicação criada
-        canvas.addGLEventListener(app);
-        canvas.addKeyListener(app);
+        
+        // Cria um canvas, adiciona na janela, e especifica o objeto "ouvinte" 
+        // para os eventos Gl, de mouse e teclado
+        janela.add(canvas,BorderLayout.CENTER);
+        canvas.addGLEventListener(app);        
         canvas.addMouseListener(app);
-        canvas.setVisible(true);
+        canvas.addKeyListener(app);
+        janela.setVisible(true);
+        canvas.requestFocus();
         
         FPSAnimator animator = new FPSAnimator(canvas, 60);
         animator.start();
     }
 
+    public CG_Campo() {
+        // Especifica o �ngulo da proje��o perspectiva  
+        angulo=50;   
+        // Inicializa o valor para corre��o de aspecto   
+        aspecto = 1; 
+
+        // Inicializa os atributos usados para alterar a posi��o do 
+        // observador virtual (=c�mera)
+        rotX = 0;
+        rotY = 0;
+        obsZ = 200; 
+
+    }
+    
     /**
      * Variáveis da classe
      */
@@ -83,6 +110,9 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
     private BufferedImage imagem;
     private TextureData texData;
     private Texture texturaCampo;
+    private double angulo, aspecto;
+    private float rotX, rotY, obsZ;
+    private GLAutoDrawable glDrawable;
 
     
     
@@ -98,7 +128,7 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
      */
     @Override
     public void init(GLAutoDrawable drawable) {
-        GL2 gl = drawable.getGL().getGL2();
+        gl = drawable.getGL().getGL2();
         glu = new GLU();
         glut = new GLUT();
         //abilita o uso da textura
@@ -131,7 +161,8 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
 		// Tenta carregar o arquivo		
 		imagem = null;
 		try {
-                    imagem = ImageIO.read(new File("src\\texture\\" + nomeArq));
+                    imagem = ImageIO.read(new File("src\\"+nomeArq));
+                    System.out.println(nomeArq);
                     // Obtém largura e altura
                     largura  = imagem.getWidth();
                     altura = imagem.getHeight();
@@ -173,7 +204,10 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         
         gl.glColor3f(0.0f, 0.0f, 0.0f);
         
+        especificaParametrosVisualizacao(); 
+        
         renderizaCampo();
+//        renderizaEsfera();
     }
     
     private void renderizaCampo (){
@@ -191,23 +225,66 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         texturaCampo.enable(gl);
         texturaCampo.bind(gl);
 
+        // Desenha um cubo no qual a textura � aplicada
+        gl.glEnable(GL.GL_TEXTURE_2D);	// Primeiro habilita uso de textura	  	
+
         gl.glPushMatrix();
-            //Desloca o objeto
-            gl.glTranslatef(0f, 40f, 30f);
-            //Desenha o "retangulo" do campo      
-            GLUquadric campo = glu.gluNewQuadric();
-            glu.gluQuadricTexture(campo, true);
-            glu.gluQuadricDrawStyle(campo, GLU.GLU_FILL);
-            glu.gluQuadricNormals(campo, GLU.GLU_FLAT);
-            glu.gluQuadricOrientation(campo, GLU.GLU_OUTSIDE);
-            gl.glScalef(1.0f, 0.5f, 0.0f);
-            glut.glutSolidCube(2.0f);
-            glu.gluDeleteQuadric(campo);
+                gl.glTranslatef(0.0f, 0.0f, 0.0f);
+                gl.glScalef(16.0f, 16.0f, 16.0f);
+                gl.glColor3f(1.0f, 1.0f, 1.0f);
+
+                gl.glBegin (GL2.GL_QUADS );
+                        // Especifica a coordenada de textura para cada v�rtice
+                        // Face frontal
+//                        gl.glNormal3f(0.0f,0.0f,-1.0f);
+//                        gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+//                        gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
+//                        gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
+//                        gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);				
+                        // Face posterior
+//                        gl.glNormal3f(0.0f,0.0f,1.0f);
+//                        gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+//                        gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+//                        gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+//                        gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+                        // Face superior
+//                        gl.glNormal3f(0.0f,1.0f,0.0f);
+//                        gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+//                        gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);
+//                        gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
+//                        gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+                        // Face inferior
+                        gl.glNormal3f(0.0f,-1.0f,0.0f);
+                        gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+                        gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+                        gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
+                        gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+                        // Face lateral direita
+//                        gl.glNormal3f(1.0f,0.0f,0.0f);
+//                        gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+//                        gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+//                        gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
+//                        gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
+                        // Face lateral esquerda
+//                        gl.glNormal3f(-1.0f,0.0f,0.0f);
+//                        gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+//                        gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+//                        gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);
+//                        gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+                gl.glEnd();
         gl.glPopMatrix();
-        texturaCampo.disable(gl);
-        texturaCampo.destroy(gl);
+        gl.glDisable(GL.GL_TEXTURE_2D);	//	Desabilita uso de textura
     }
     
+    	private void renderizaEsfera() {
+		gl.glLineWidth(2);
+		gl.glColor3f(0.0f, 0.0f, 1.0f);
+		
+		gl.glPushMatrix();
+			gl.glTranslatef(40.0f, 0.0f, 0.0f);
+			glut.glutSolidSphere(24, 30, 30);
+		gl.glPopMatrix();
+	}
     
     /**
      * Chamado após o redimensionamento do componente ou da janela de
@@ -227,6 +304,38 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         glu.gluPerspective(65.0, (float) w / (float) h, 1.0, 20.0);
         gl.glTranslatef(0.0f, 0.0f, -10.0f);
     }
+    
+    /**
+     * M�todo usado para especificar a posi��o do observador virtual (=c�mera).
+     */    
+    public void posicionaObservador()
+    {
+            // Especifica sistema de coordenadas do modelo
+            gl.glMatrixMode(GL2.GL_MODELVIEW);
+            // Inicializa sistema de coordenadas do modelo
+            gl.glLoadIdentity();
+            // Especifica posi��o do observador e do alvo
+            gl.glTranslatef(0,0,-obsZ);
+            gl.glRotatef(rotX,1,0,0);
+            gl.glRotatef(rotY,0,1,0);
+    }
+
+    /**
+     * M�todo usado para especificar o volume de visualiza��o.
+     */    
+    public void especificaParametrosVisualizacao()
+    {
+            // Especifica sistema de coordenadas de proje��o
+            gl.glMatrixMode(GL2.GL_PROJECTION);
+            // Inicializa sistema de coordenadas de proje��o
+            gl.glLoadIdentity();
+
+            // Especifica a proje��o perspectiva(angulo,aspecto,zMin,zMax)
+            glu.gluPerspective(angulo, aspecto, 0.2, 500);
+
+            posicionaObservador();
+    }
+        
 
     /**
      * Métodos abstratos de KeyListener
@@ -240,16 +349,31 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
 
     @Override
     public void keyPressed(KeyEvent ke) {
-        switch (ke.getKeyCode()) {
-            case KeyEvent.VK_ESCAPE:
-                System.exit(0);
-                break;
-            case KeyEvent.VK_0:
-                System.out.println("0 foi apertado.");
-                break;
-            default:
-                break;
-        }
+        switch (ke.getKeyCode()) { 
+            case KeyEvent.VK_LEFT:
+                rotY--;
+            break;
+            case KeyEvent.VK_RIGHT:
+                rotY++;
+            break;
+            case KeyEvent.VK_UP:
+                rotX++;
+            break;
+            case KeyEvent.VK_DOWN:
+                rotX--;
+            break;
+            case KeyEvent.VK_HOME:
+                obsZ++;
+            break;
+            case KeyEvent.VK_END:
+                obsZ--;
+            break;	
+//            case KeyEvent.VK_F1:
+//                luz = !luz;
+//            break;											
+            case KeyEvent.VK_ESCAPE:	System.exit(0);
+            break;
+            }  
     }
 
     //<editor-fold defaultstate="collapsed" desc="keyReleased">
@@ -263,8 +387,14 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
      */
     //<editor-fold defaultstate="colapsed" desc="MouseListener">
     @Override
-    public void mouseClicked(MouseEvent me) {
-    }
+    public void mouseClicked(MouseEvent e)
+	{
+		if (e.getButton() == MouseEvent.BUTTON1) // Zoom in
+			if (angulo >= 4) angulo -= 4;
+		if (e.getButton() == MouseEvent.BUTTON3) // Zoom out
+			if (angulo <= 72) angulo += 4;
+		glDrawable.display();
+	}
 
     @Override
     public void mousePressed(MouseEvent me) {
