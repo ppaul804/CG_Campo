@@ -393,7 +393,6 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
 			if (angulo >= 4) angulo -= 4;
 		if (e.getButton() == MouseEvent.BUTTON3) // Zoom out
 			if (angulo <= 72) angulo += 4;
-		glDrawable.display();
 	}
 
     @Override
