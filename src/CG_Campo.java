@@ -105,12 +105,14 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
     private GLU glu;// objeto da classe GLU
     private GLUT glut; // objeto da classe GLUT
     private int texture;
-    private int idTextura[];
+    private int idTextura[]; // vetor de textura
     private int largura, altura;//valores obtidos da imagem no loadImage
     private ByteBuffer buffer;// Conteúdo gerado no loadImage
     private BufferedImage imagem;
     private TextureData texData;
     private Texture texturaCampo;
+    private Texture texturaLadoCampo;
+    private Texture texturaFrenteCampo;
     private double angulo, aspecto;// valor setado no construtor
     private float rotX, rotY, obsZ;
     private GLAutoDrawable glDrawable;
@@ -133,7 +135,7 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         gl.glEnable(GL2.GL_TEXTURE_2D);
 
         // Comandos de inicialização para textura
-        loadImage("campo.jpg");// somente carrega a imagem
+        loadImage("campo.jpg");
 
         // Gera identificador de textura
         idTextura = new int[10];
@@ -151,7 +153,7 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
 
         // Cor do fundo da tela
-        gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
     /**
@@ -196,7 +198,9 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
      */
     @Override
     public void display(GLAutoDrawable drawable) {
-
+        //Habilita o uso da textura
+        //gl.glEnable(GL2.GL_TEXTURE_2D); //já foi habilitada em init
+        
         // Limpa a janela de visualização com a cor de fundo especificada
         gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
         gl.glLoadIdentity();
@@ -214,15 +218,24 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
      */
     private void renderizaCampo() {
         try {
+            //textura do campo
             InputStream stream = getClass().getResourceAsStream("campo.jpg");
             TextureData data = TextureIO.newTextureData(GLProfile.getDefault(), stream, false, "jpg");
             texturaCampo = TextureIO.newTexture(data);
+            //textura das laterais
+            stream = getClass().getResourceAsStream("ladoCampo.jpg");
+            data = TextureIO.newTextureData(GLProfile.getDefault(), stream, false, "jpg");
+            texturaLadoCampo = TextureIO.newTexture(data);
+            //textura do frontal
+            stream = getClass().getResourceAsStream("frenteCampo.jpg");
+            data = TextureIO.newTextureData(GLProfile.getDefault(), stream, false, "jpg");
+            texturaFrenteCampo = TextureIO.newTexture(data);
         } catch (IOException exc) {
             exc.printStackTrace();
             System.exit(1);
         }
 
-        //Habilita a textura do campo
+        //Habilita as texturas do campo
         texturaCampo.enable(gl);
         texturaCampo.bind(gl);
 
@@ -230,53 +243,49 @@ public class CG_Campo implements GLEventListener, KeyListener, MouseListener {
         gl.glEnable(GL.GL_TEXTURE_2D);	// Primeiro habilita uso de textura	  	
 
         gl.glPushMatrix();
-        gl.glTranslatef(0.0f, 0.0f, 0.0f);
-        gl.glScalef(16.0f, 16.0f, 16.0f);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
+            gl.glTranslatef(0.0f, 0.0f, 0.0f);
+            gl.glScalef(50.0f, 50.0f, 50.0f);//escala do objeto
+            gl.glColor3f(1.0f, 1.0f, 1.0f);
 
-        gl.glBegin(GL2.GL_QUADS);
-                // Especifica a coordenada de textura para cada vértice
-        // Face frontal
-//            gl.glNormal3f(0.0f,0.0f,-1.0f);
-//            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
-//            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
-//            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
-//            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);				
-        // Face posterior
-//            gl.glNormal3f(0.0f,0.0f,1.0f);
-//            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
-//            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
-//            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
-//            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
-        // Face superior
-//            gl.glNormal3f(0.0f,1.0f,0.0f);
-//            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
-//            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);
-//            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
-//            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
-        // Face inferior
-        gl.glNormal3f(0.0f, -1.0f, 0.0f);
-        gl.glTexCoord2f(1.0f, 1.0f);
-        gl.glVertex3f(-1.0f, -1.0f, -1.0f);
-        gl.glTexCoord2f(0.0f, 1.0f);
-        gl.glVertex3f(1.0f, -1.0f, -1.0f);
-        gl.glTexCoord2f(0.0f, 0.0f);
-        gl.glVertex3f(1.0f, -1.0f, 1.0f);
-        gl.glTexCoord2f(1.0f, 0.0f);
-        gl.glVertex3f(-1.0f, -1.0f, 1.0f);
-            // Face lateral direita
-//            gl.glNormal3f(1.0f,0.0f,0.0f);
-//            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
-//            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
-//            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
-//            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
-        // Face lateral esquerda
-//            gl.glNormal3f(-1.0f,0.0f,0.0f);
-//            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
-//            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
-//            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);
-//            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
-        gl.glEnd();
+            gl.glBegin(GL2.GL_QUADS);
+            // Especifica a coordenada de textura para cada vértice
+            // Face frontal
+                gl.glNormal3f(0.0f,0.0f,-1.0f);
+                gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+                gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
+                gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
+                gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);				
+            // Face posterior
+    //            gl.glNormal3f(0.0f,0.0f,1.0f);
+    //            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+    //            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+    //            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+    //            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+            // Face superior
+    //            gl.glNormal3f(0.0f,1.0f,0.0f);
+    //            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+    //            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);
+    //            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
+    //            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+            // Face inferior
+            gl.glNormal3f(0.0f, -1.0f, 0.0f);
+            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(1.0f, -1.0f, -1.0f);
+            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(1.0f, -1.0f, 1.0f);
+            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, 1.0f);
+                // Face lateral direita
+    //            gl.glNormal3f(1.0f,0.0f,0.0f);
+    //            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f, -1.0f);
+    //            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f, -1.0f);
+    //            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f( 1.0f,  1.0f,  1.0f);
+    //            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f( 1.0f, -1.0f,  1.0f);
+            // Face lateral esquerda
+    //            gl.glNormal3f(-1.0f,0.0f,0.0f);
+    //            gl.glTexCoord2f(0.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f, -1.0f);
+    //            gl.glTexCoord2f(1.0f, 0.0f); gl.glVertex3f(-1.0f, -1.0f,  1.0f);
+    //            gl.glTexCoord2f(1.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f,  1.0f);
+    //            gl.glTexCoord2f(0.0f, 1.0f); gl.glVertex3f(-1.0f,  1.0f, -1.0f);
+            gl.glEnd();
         gl.glPopMatrix();
         gl.glDisable(GL.GL_TEXTURE_2D);	//	Desabilita uso de textura
     }
